@@ -21,6 +21,8 @@
    (java.io File InputStream)
    (clojure.lang ExceptionInfo)))
 
+(set! *warn-on-reflection* true)
+
 (defn- ->Authenticator
   [v]
   (if (instance? Authenticator v)

@@ -5,7 +5,9 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [clojure.walk :refer [prewalk]]
-   [hato.multipart :as multipart])
+   [hato.multipart :as multipart]
+   [cheshire.core]
+   [cognitect.transit])
   (:import
    (java.util
     Base64)
@@ -21,22 +23,12 @@
     GZIPInputStream InflaterInputStream ZipException Inflater)))
 
 ;; Cheshire is an optional dependency, so we check for it at compile time.
+(set! *warn-on-reflection* true)
 
-
-(def json-enabled?
-  (try
-    (require
-     'cheshire.core)
-    true
-    (catch Throwable _ false)))
+(def json-enabled? true)
 
 ;; Transit is an optional dependency, so check at compile time.
-(def transit-enabled?
-  (try
-    (require
-     'cognitect.transit)
-    true
-    (catch Throwable _ false)))
+(def transit-enabled? true)
 
 (defn transit-opts-by-type
   "Returns the Transit options by type."
@@ -61,8 +53,8 @@
   [^InputStream in type & [opts]]
   {:pre [transit-enabled?]}
   (when (pos? (.available in))
-    (let [reader (ns-resolve 'cognitect.transit 'reader)
-          read (ns-resolve 'cognitect.transit 'read)]
+    (let [reader cognitect.transit/reader
+          read cognitect.transit/read]
       (read (reader in type (transit-read-opts opts))))))
 
 (defn ^:dynamic transit-encode
@@ -70,8 +62,8 @@
   [out type & [opts]]
   {:pre [transit-enabled?]}
   (let [output (ByteArrayOutputStream.)
-        writer (ns-resolve 'cognitect.transit 'writer)
-        write (ns-resolve 'cognitect.transit 'write)]
+        writer cognitect.transit/writer
+        write cognitect.transit/write]
     (write (writer output type (transit-write-opts opts)) out)
     (.toByteArray output)))
 
@@ -79,19 +71,19 @@
   "Resolve and apply cheshire's json encoding dynamically."
   [& args]
   {:pre [json-enabled?]}
-  (apply (ns-resolve (symbol "cheshire.core") (symbol "encode")) args))
+  (apply cheshire.core/encode args))
 
 (defn ^:dynamic json-decode
   "Resolve and apply cheshire's json decoding dynamically."
   [& args]
   {:pre [json-enabled?]}
-  (apply (ns-resolve (symbol "cheshire.core") (symbol "decode")) args))
+  (apply cheshire.core/decode args))
 
 (defn ^:dynamic json-decode-strict
   "Resolve and apply cheshire's json decoding dynamically (with lazy parsing disabled)."
   [& args]
   {:pre [json-enabled?]}
-  (apply (ns-resolve (symbol "cheshire.core") (symbol "decode")) args))
+  (apply cheshire.core/decode args))
 
 ;;;
 
